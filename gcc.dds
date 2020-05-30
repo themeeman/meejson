@@ -1,0 +1,4 @@
+Compiler-ID: GNU
+C-Compiler: gcc
+C++-Compiler: g++
+Flags: -fconcepts -std=c++20
