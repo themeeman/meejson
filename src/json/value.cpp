@@ -1,62 +1,36 @@
-#include "json.hpp"
+#include "value.hpp"
 
 #include <compare>
+#include <iostream>
 
-template <class... Ts>
-struct overload : Ts... {
-    using Ts::operator()...;
-};
-
-template <class... Ts>
-overload(Ts...) -> overload<Ts...>;
-
-constexpr json::value::value(const value& other) : m_val(json::visit(overload{
-    [](const value::object& obj) {
-        auto copy = value::object();
-        std::for_each(begin(obj), end(obj), 
-            [&copy](const auto& pair) mutable { copy.emplace(pair.first, std::make_unique<value>(*pair.second)); });
-        return value::value_type(copy);
-    },
-    [](const value::array& arr) {
-        auto copy = value::array();
-        copy.reserve(arr.size());
-        std::for_each(begin(arr), end(arr), 
-            [&copy](const auto& val) mutable { copy.push_back(std::make_unique<value>(*val)); });
-        return value::value_type(copy);
-    },
-    [](const auto& val) { return value::value_type(val); },
-}, other)) {}
+auto json::operator<<(std::ostream& os, null) noexcept -> std::ostream& {
+    os << "null";
+    return os;
+}
 
 auto json::operator<<(std::ostream& os, const value& v) noexcept -> std::ostream& {
-    json::visit(overload{
-        [&os](const value::object& obj) {
-            os << '{';
-            auto it = begin(obj);
-            if (it != end(obj)) {
-                std::cout << "\"" << (*it).first << "\"" << ':' << *(*it).second;
-                it++;
-                for (; it != end(obj); it++) {
-                    std::cout << ',';
-                    std::cout << "\"" << (*it).first << "\"" << ':' << *(*it).second;
-                }
-            }
-            os << '}';
-        },
-        [&os](const value::array& arr) {
-            os << '[';
-            auto it = begin(arr);
-            if (it != end(arr)) {
-                std::cout << **it;
-                it++;
-                for (; it != end(arr); it++) {
-                    std::cout << ',' << **it;
-                }
-            }
-            os << ']';
-        },
+    auto p = os.precision(std::numeric_limits<double>::max_digits10);
+    os << std::boolalpha;
+    json::visit(json::detail::overload{
         [&os](const std::string& s) { os << "\"" << s << "\""; },
-        [&os](null) { os << "null"; },
-        [&os](const auto& val) { std::cout << val; },
+        [&os](const auto& val) { os << val; },
     }, v);
+    os.precision(p);
     return os;
+}
+
+auto json::value::operator[](std::string_view s) -> value& {
+    return get<object>()[std::string(s)];
+}
+
+auto json::literals::operator""_value(unsigned long long x) noexcept -> json::value {
+    return value(int64_t(x));
+}
+
+auto json::literals::operator""_value(long double x) noexcept -> json::value {
+    return value(double(x));
+}
+
+auto json::literals::operator""_value(const char* s, std::size_t n) noexcept -> json::value {
+    return value(std::string(s, n));
 }
