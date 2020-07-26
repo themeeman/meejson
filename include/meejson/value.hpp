@@ -489,11 +489,12 @@ struct basic_value {
     auto operator==(const basic_value& other) const noexcept -> bool {
         return json::visit(detail::overload{
             []<class T>(const T& lhs, const T& rhs) { return lhs == rhs; },
+            [](arithmetic auto lhs, arithmetic auto rhs) { return lhs == rhs; },
             [](const auto&, const auto&) { return false; },
         }, *this, other);
     }
 
-    template <in_type_list<types> T>
+    template <in_type_list<types> T> requires (!arithmetic<T>)
     auto operator==(const T& other) const noexcept -> bool {
         return json::visit(detail::overload{
             [&other](const T& val) { return other == val; },
@@ -501,18 +502,10 @@ struct basic_value {
         }, *this);
     }
 
-    template <json::integral T> requires (!std::same_as<T, int_type>)
+    template <arithmetic T>
     auto operator==(T other) const noexcept -> bool {
         return json::visit(detail::overload{
-            [other](int_type val) { return other == val; },
-            [](const auto&) { return false; },
-        }, *this);
-    }
-
-    template <std::floating_point T> requires (!std::same_as<T, float_type>)
-    auto operator==(T other) const noexcept -> bool {
-        return json::visit(detail::overload{
-            [other](float_type val) { return other == val; },
+            [other](arithmetic auto val) { return other == val; },
             [](const auto&) { return false; },
         }, *this);
     }
@@ -594,6 +587,117 @@ struct basic_value {
         }, *this);
     }
 
+    constexpr auto get_null() noexcept -> null_type& {
+        return get<null_type>();
+    }
+
+    constexpr auto get_null() const noexcept -> const null_type& {
+        return get<null_type>();
+    }
+
+    constexpr auto get_bool() noexcept -> bool_type& {
+        return get<float_type>();
+    }
+
+    constexpr auto get_bool() const noexcept -> const bool_type& {
+        return get<bool_type>();
+    }
+
+    constexpr auto get_int() noexcept -> int_type& {
+        return get<int_type>();
+    }
+
+    constexpr auto get_int() const noexcept -> const int_type& {
+        return get<int_type>();
+    }
+
+    constexpr auto get_float() noexcept -> float_type& {
+        return get<float_type>();
+    }
+
+    constexpr auto get_float() const noexcept -> const float_type& {
+        return get<float_type>();
+    }
+
+    constexpr auto get_string() noexcept -> string_type& {
+        return get<string_type>();
+    }
+
+    constexpr auto get_string() const noexcept -> const string_type& {
+        return get<string_type>();
+    }
+
+    constexpr auto get_array() noexcept -> array_type& {
+        return get<array_type>();
+    }
+
+    constexpr auto get_array() const noexcept -> const array_type& {
+        return get<array_type>();
+    }
+
+    constexpr auto get_object() noexcept -> object_type& {
+        return get<object_type>();
+    }
+
+    constexpr auto get_object() const noexcept -> const object_type& {
+        return get<object_type>();
+    }
+
+    constexpr auto get_if_null() noexcept -> optional_ref<null_type> {
+        return get_if<null_type>();
+    }
+
+    constexpr auto get_if_null() const noexcept -> optional_ref<const null_type> {
+        return get_if<null_type>();
+    }
+
+    constexpr auto get_if_bool() noexcept -> optional_ref<bool_type> {
+        return get_if<float_type>();
+    }
+
+    constexpr auto get_if_bool() const noexcept -> optional_ref<const bool_type> {
+        return get_if<bool_type>();
+    }
+
+    constexpr auto get_if_int() noexcept -> optional_ref<int_type> {
+        return get_if<int_type>();
+    }
+
+    constexpr auto get_if_int() const noexcept -> optional_ref<const int_type> {
+        return get_if<int_type>();
+    }
+
+    constexpr auto get_if_float() noexcept -> optional_ref<float_type> {
+        return get_if<float_type>();
+    }
+
+    constexpr auto get_if_float() const noexcept -> optional_ref<const float_type> {
+        return get_if<float_type>();
+    }
+
+    constexpr auto get_if_string() noexcept -> optional_ref<string_type> {
+        return get_if<string_type>();
+    }
+
+    constexpr auto get_if_string() const noexcept -> optional_ref<const string_type> {
+        return get_if<string_type>();
+    }
+
+    constexpr auto get_if_array() noexcept -> optional_ref<array_type> {
+        return get_if<array_type>();
+    }
+
+    constexpr auto get_if_array() const noexcept -> optional_ref<const array_type> {
+        return get_if<array_type>();
+    }
+
+    constexpr auto get_if_object() noexcept -> optional_ref<object_type> {
+        return get_if<object_type>();
+    }
+
+    constexpr auto get_if_object() const noexcept -> optional_ref<const object_type> {
+        return get_if<object_type>();
+    }
 
 private:
     value_type m_val;
