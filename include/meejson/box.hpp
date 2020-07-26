@@ -4,9 +4,7 @@
 #include <memory>
 #include <utility>
 
-namespace json {
-
-namespace detail {
+namespace json::detail {
 
 template <class T>
 struct box {
@@ -18,7 +16,7 @@ struct box {
     box(box<U>&& b) : m_ptr(std::move(b)) {}
 
     auto operator=(const box&) -> box& = delete;
-    auto operator=(box&&) -> box& = default;
+    auto operator=(box&&) noexcept -> box& = default;
 
     ~box() noexcept = default;
 
@@ -31,15 +29,19 @@ struct box {
     }
 
     auto operator->() noexcept -> T* {
-        return &*m_ptr;
+        return std::addressof(*m_ptr);
     }
 
     auto operator->() const noexcept -> const T* {
-        return &*m_ptr;
+        return std::addressof(*m_ptr);
     }
 
     explicit operator bool() const noexcept {
         return bool(m_ptr);
+    }
+
+    auto clone() const -> box {
+        return make_box<T>(*m_ptr);
     }
 
     template <class U, class... Args>
@@ -55,7 +57,6 @@ auto make_box(Args&&... args) -> box<T> {
     return b;
 }
 
-}
 }
 
 #endif
