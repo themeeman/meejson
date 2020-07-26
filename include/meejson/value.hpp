@@ -16,7 +16,7 @@
 #include "detail.hpp"
 #include "type_list.hpp"
 
-namespace json {
+namespace mee::json {
 
 template <class>
 struct is_value;

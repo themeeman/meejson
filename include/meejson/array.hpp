@@ -10,7 +10,7 @@
 
 #include "box.hpp"
 
-namespace json {
+namespace mee::json {
 
 namespace detail {
 

@@ -3,7 +3,7 @@
 
 #include <type_traits>
 
-namespace json::detail {
+namespace mee::json::detail {
 
 template <class... Ts>
 struct overload : Ts... {

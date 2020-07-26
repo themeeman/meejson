@@ -1,35 +1,38 @@
 #include "../include/meejson/parser.hpp"
 #include "../include/meejson/type_list.hpp"
 
-using json::detail::overload;
 using namespace std::literals;
 
+namespace mee {
+
 namespace {
+
+using json::detail::overload;
 
 auto to_string(const json::token& t) noexcept -> std::string {
     using json::symbol;
     return std::visit(overload{
-        [](symbol t) {
-            switch (t) {
-                case symbol::lbracket:
-                    return "["s;
-                case symbol::rbracket:
-                    return "]"s;
-                case symbol::lbrace:
-                    return "{"s;
-                case symbol::rbrace:
-                    return "}"s;
-                case symbol::colon:
-                    return ":"s;
-                case symbol::comma:
-                    return ","s;
-            };
-            std::terminate();
-        },
-        [](const std::string &s) { return '"' + s + '"'; },
-        [](json::null) { return "null"s; },
-        [](bool b) { return b ? "true"s : "false"s; },
-        [](const auto &x) { return std::to_string(x); }
+    [](symbol t) {
+        switch (t) {
+            case symbol::lbracket:
+                return "["s;
+            case symbol::rbracket:
+                return "]"s;
+            case symbol::lbrace:
+                return "{"s;
+            case symbol::rbrace:
+                return "}"s;
+            case symbol::colon:
+                return ":"s;
+            case symbol::comma:
+                return ","s;
+        };
+        std::terminate();
+    },
+    [](const std::string& s) { return '"' + s + '"'; },
+    [](json::null) { return "null"s; },
+    [](bool b) { return b ? "true"s : "false"s; },
+    [](const auto& x) { return std::to_string(x); }
     }, t.tok);
 }
 
@@ -37,8 +40,8 @@ template<class... Ts, class T>
 requires json::in_type_list<T, json::type_list<Ts...>>
 constexpr auto operator==(const std::variant<Ts...>& lhs, const T& rhs) noexcept {
     return std::visit(overload{
-        [rhs](const T &x) { return x == rhs; },
-        [](const auto &) { return false; },
+    [rhs](const T& x) { return x == rhs; },
+    [](const auto&) { return false; },
     }, lhs);
 }
 
@@ -63,7 +66,7 @@ struct Parser {
 
     auto parse_value() noexcept -> json::result<json::value> {
         if (m_iter == m_end) {
-            const auto &last = *(m_iter - 1);
+            const auto& last = *(m_iter - 1);
             return json::error(last.line, last.col, "Parser Error: Unexpected end of tokens");
         }
         return std::visit(overload{
@@ -78,7 +81,7 @@ struct Parser {
                                        "Parser Error: Unexpected token " + to_string(*m_iter));
             }
         },
-        [this](const auto &val) -> json::result<json::value> {
+        [this](const auto& val) -> json::result<json::value> {
             m_iter++;
             return json::value(val);
         },
@@ -87,16 +90,16 @@ struct Parser {
 
     auto parse_array() noexcept -> json::result<json::value> {
         return parse_aggregate<json::array>(
-            [](Parser& self) { return self.parse_value(); },
-            [](json::array& arr, auto&& val) { return arr.push_back(std::forward<decltype(val)>(val)); },
+        [](Parser& self) { return self.parse_value(); },
+        [](json::array& arr, auto&& val) { return arr.push_back(std::forward<decltype(val)>(val)); },
         json::symbol::rbracket
         );
     }
 
     auto parse_object() noexcept -> json::result<json::value> {
         return parse_aggregate<json::object>(
-            [](Parser& self) { return self.parse_key_value_pair(); },
-            [](json::object& arr, auto&& val) { return arr.insert(std::forward<decltype(val)>(val)); },
+        [](Parser& self) { return self.parse_key_value_pair(); },
+        [](json::object& arr, auto&& val) { return arr.insert(std::forward<decltype(val)>(val)); },
         json::symbol::rbrace
         );
     }
@@ -106,7 +109,7 @@ struct Parser {
         auto arr = T();
         m_iter++;
         if (m_iter == m_end) {
-            const auto &last = *(m_iter - 1);
+            const auto& last = *(m_iter - 1);
             return json::error(last.line, last.col, "Parser Error: Unexpected end of tokens, expected value");
         }
         if (m_iter->tok == end) {
@@ -141,7 +144,7 @@ struct Parser {
     }
 
     auto parse_key_value_pair() noexcept -> json::result<std::pair<std::string, json::value>> {
-        const auto &key = *m_iter;
+        const auto& key = *m_iter;
         if (!std::holds_alternative<std::string>(key.tok)) {
             return json::error(key.line, key.col,
                                "Parser Error: Invalid object key '" + to_string(key) + "', expecting string.");
@@ -183,4 +186,6 @@ auto json::parse(std::string_view s) noexcept -> json::result<json::value> {
 
 auto json::parse(const std::vector<json::token>& toks) noexcept -> json::result<json::value> {
     return Parser(toks.begin(), toks.end()).parse();
+}
+
 }

@@ -1,6 +1,8 @@
 #include "gtest/gtest.h"
 #include "../include/meejson/value.hpp"
 
+namespace json = mee::json;
+
 using namespace std::literals;
 using namespace json::literals;
 

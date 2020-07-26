@@ -3,6 +3,8 @@
 #include <concepts>
 using namespace std::literals;
 
+namespace mee {
+
 namespace {
 
 template<class T>
@@ -25,9 +27,10 @@ struct utf8 {
 
     constexpr utf8() noexcept: m_size(1), m_bytes{} {}
 
-    constexpr explicit utf8(std::uint16_t x) noexcept : utf8(cast<std::uint32_t>(x)) {}
+    constexpr explicit utf8(std::uint16_t x) noexcept: utf8(cast<std::uint32_t>(x)) {}
 
-    constexpr explicit utf8(std::array<std::uint8_t, 3> x) : utf8(cast<std::uint32_t>(x[2] + (x[1] << 8) + (x[0] << 16))) {}
+    constexpr explicit utf8(std::array<std::uint8_t, 3> x) : utf8(
+    cast<std::uint32_t>(x[2] + (x[1] << 8) + (x[0] << 16))) {}
 
     constexpr explicit utf8(std::uint32_t x) : m_bytes{} {
         if (x <= 0x007F) {
@@ -339,6 +342,9 @@ private:
 };
 
 }
-auto json::lex(std::string_view s) noexcept -> result<std::vector<token>> {
+
+auto json::lex(std::string_view s) noexcept -> result <std::vector<token>> {
     return Lexer(s.cbegin(), s.cend()).lex();
+}
+
 }

@@ -8,7 +8,7 @@
 
 #include "value.hpp"
 
-namespace json {
+namespace mee::json {
 
 enum class symbol {
     lbracket,

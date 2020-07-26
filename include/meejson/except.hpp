@@ -8,7 +8,7 @@
 
 #include "type_list.hpp"
 
-namespace json {
+namespace mee::json {
 
 struct invalid_operation : std::exception {
     invalid_operation() = delete;

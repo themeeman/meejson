@@ -7,7 +7,7 @@
 #include <algorithm>
 #include <ranges>
 
-namespace json {
+namespace mee::json {
 
 namespace detail {
 
@@ -375,15 +375,15 @@ auto operator<<(std::ostream& os, const basic_object<Value>& obj) noexcept -> st
 }
 
 namespace std {
-    template <class Value> struct tuple_size<json::detail::key_value_ref<Value>> : std::integral_constant<size_t, 2> { };
+    template <class Value> struct tuple_size<mee::json::detail::key_value_ref<Value>> : std::integral_constant<size_t, 2> { };
 
-    template <class Value> struct tuple_element<0, json::detail::key_value_ref<Value>> { using type = std::string; };
-    template <class Value> struct tuple_element<1, json::detail::key_value_ref<Value>> { using type = Value; };
+    template <class Value> struct tuple_element<0, mee::json::detail::key_value_ref<Value>> { using type = std::string; };
+    template <class Value> struct tuple_element<1, mee::json::detail::key_value_ref<Value>> { using type = Value; };
 
-    template <class Value> struct tuple_size<json::detail::const_key_value_ref<Value>> : std::integral_constant<size_t, 2> { };
+    template <class Value> struct tuple_size<mee::json::detail::const_key_value_ref<Value>> : std::integral_constant<size_t, 2> { };
 
-    template <class Value> struct tuple_element<0, json::detail::const_key_value_ref<Value>> { using type = std::string; };
-    template <class Value> struct tuple_element<1, json::detail::const_key_value_ref<Value>> { using type = Value; };
+    template <class Value> struct tuple_element<0, mee::json::detail::const_key_value_ref<Value>> { using type = std::string; };
+    template <class Value> struct tuple_element<1, mee::json::detail::const_key_value_ref<Value>> { using type = Value; };
 }
 
 #endif

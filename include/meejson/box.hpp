@@ -4,7 +4,7 @@
 #include <memory>
 #include <utility>
 
-namespace json::detail {
+namespace mee::json::detail {
 
 template <class T>
 struct box {

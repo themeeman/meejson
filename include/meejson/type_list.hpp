@@ -3,7 +3,7 @@
 
 #include <concepts>
 
-namespace json {
+namespace mee::json {
 
 template <class... Ts>
 struct type_list {};

@@ -2,6 +2,7 @@
 #include <string_view>
 #include <sstream>
 
+namespace mee {
 json::invalid_operation::invalid_operation(std::string_view lhs, std::string_view rhs, std::string_view op) {
     std::stringstream s;
     s << "Invalid Operation \"" << op << "\" for types \"" << lhs << "\" and \"" << rhs << "\"";
@@ -34,3 +35,4 @@ auto json::invalid_access::what() const noexcept -> const char* {
     return msg.c_str();
 }
 
+}
