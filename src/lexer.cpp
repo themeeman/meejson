@@ -205,8 +205,8 @@ struct Lexer {
             is_float = true;
             s.push_back('e');
             advance();
-            if (*m_iter == '-') {
-                s.push_back('-');
+            if (*m_iter == '-' || *m_iter == '+') {
+                s.push_back(*m_iter);
                 advance();
             }
             auto digits = lex_digits();
@@ -242,10 +242,15 @@ struct Lexer {
                         return c.error();
                     }
                 }
+            } else if (*m_iter == '\n') {
+                return json::error(m_line, m_col, "Unexpected line break while parsing string");
             } else {
                 s.push_back(*m_iter);
                 advance();
             }
+        }
+        if (m_iter == m_end) {
+            return json::error(m_line, m_col, "Unexpected end of input while parsing string");
         }
         advance();
         return json::token(s, line, col);

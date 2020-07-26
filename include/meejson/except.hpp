@@ -42,7 +42,7 @@ struct result {
     explicit(false) result(const T& val) : m_var(val) {}
     explicit(false) result(const error& err) : m_var(err) {}
 
-    explicit operator bool() noexcept {
+    explicit operator bool() const noexcept {
         return std::holds_alternative<T>(m_var);
     }
 

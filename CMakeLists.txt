@@ -49,7 +49,7 @@ target_sources(meejson PRIVATE
 
 set_target_properties(meejson PROPERTIES CXX_STANDARD 20 CXX_EXTENSIONS OFF LINKER_LANGUAGE CXX)
 
-add_executable(tests test/value.cpp)
+add_executable(tests test/value.cpp test/parser.cpp)
 target_link_libraries(tests gtest_main meejson)
 set_target_properties(tests PROPERTIES CXX_STANDARD 20 CXX_EXTENSIONS OFF LINKER_LANGUAGE CXX)
 add_test(NAME value_test COMMAND value)
