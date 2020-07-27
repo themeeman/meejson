@@ -35,4 +35,7 @@ auto json::invalid_access::what() const noexcept -> const char* {
     return msg.c_str();
 }
 
+auto json::error_exception::what() const noexcept -> const char* {
+    return msg.c_str();
+}
 }

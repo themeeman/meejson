@@ -20,14 +20,6 @@ private:
     std::string msg;
 };
 
-struct error {
-    std::int32_t line;
-    std::int32_t col;
-    std::string msg;
-
-    [[nodiscard]] auto what() const noexcept -> std::string;
-};
-
 struct invalid_access : std::exception {
     invalid_access() = delete;
     invalid_access(std::string_view item);
@@ -36,6 +28,24 @@ struct invalid_access : std::exception {
 private:
     std::string msg;
 };
+
+struct error {
+    std::int32_t line;
+    std::int32_t col;
+    std::string msg;
+
+    [[nodiscard]] auto what() const noexcept -> std::string;
+};
+
+struct error_exception : std::exception {
+    std::string msg;
+
+    error_exception() = delete;
+    explicit error_exception(const error& err) : msg(err.what()) {}
+
+    [[nodiscard]] auto what() const noexcept -> const char* override;
+};
+
 
 template <class T>
 struct result {

@@ -112,7 +112,7 @@ namespace detail {
 template <class Value, class F>
 void apply_value_assign(Value& self, const Value& other, F&& f, std::string_view op) {
     json::visit(detail::overload{
-        [&self, f = std::forward<F>(f)] <arithmetic T, arithmetic U>(T x, U y)
+        [&self, f = std::forward<F>(f)] (const arithmetic auto& x, const arithmetic auto& y)
             { self = f(x, y); },
         [op]<class T, class U>(const T&, const U&)
             { throw json::invalid_operation(type_name<Value, T>::value, type_name<Value, U>::value, op); }
@@ -122,7 +122,7 @@ void apply_value_assign(Value& self, const Value& other, F&& f, std::string_view
 template <class Value, arithmetic T, class F>
 void apply_value_assign(Value& self, T other, F&& f, std::string_view op) {
     json::visit(detail::overload{
-        [&self, other, f = std::forward<F>(f)] <arithmetic U>(const U& x)
+        [&self, other, f = std::forward<F>(f)] (const arithmetic auto& x)
             { self = f(x, other); },
         [op]<class U>(const U&) {
             if constexpr (json::integral<T>) {
@@ -210,7 +210,6 @@ struct basic_value {
     using string_type = StringType;
     using array_type = ArrayType<basic_value>;
     using object_type = ObjectType<basic_value>;
-
     using numbers = type_list<int_type, float_type>;
     using primitives = type_list<null_type, bool_type, int_type, float_type, string_type>;
     using aggregates = type_list<array_type, object_type>;
@@ -341,6 +340,33 @@ struct basic_value {
 
     template <class F, class Value> requires is_value<Value>::value && visitable2<F, typename Value::types, typename Value::types>
     constexpr friend auto visit(F&& f, const Value& v1, const Value& v2);
+
+    auto has_key(std::string_view s) const -> bool {
+        auto obj = get_if<object_type>();
+        if (!obj) {
+            throw invalid_operation(type_name(), "has_key");
+        }
+        return obj->contains(s);
+    }
+
+    template <class T> requires std::constructible_from<basic_value, T>
+    auto emplace(T&& val) -> basic_value& {
+        auto obj = get_if<array_type>();
+        if (!obj) {
+            throw invalid_operation(type_name(), "array emplace");
+        }
+        return obj->emplace_back(std::forward<T>(val));
+    }
+
+    template <class T> requires std::constructible_from<basic_value, T>
+    auto emplace(std::string_view key, T&& val) -> basic_value& {
+        auto obj = get_if<object_type>();
+        if (!obj) {
+            throw invalid_operation(type_name(), "object emplace");
+        }
+        return *obj->emplace(key, std::forward<T>(val)).second();
+    }
+
 
     auto operator[](std::string_view s) -> basic_value& {
         auto obj = get_if<object_type>();
@@ -489,7 +515,7 @@ struct basic_value {
     auto operator==(const basic_value& other) const noexcept -> bool {
         return json::visit(detail::overload{
             []<class T>(const T& lhs, const T& rhs) { return lhs == rhs; },
-            [](arithmetic auto lhs, arithmetic auto rhs) { return lhs == rhs; },
+            [](const arithmetic auto& lhs, const arithmetic auto& rhs) { return lhs == rhs; },
             [](const auto&, const auto&) { return false; },
         }, *this, other);
     }
@@ -502,10 +528,9 @@ struct basic_value {
         }, *this);
     }
 
-    template <arithmetic T>
-    auto operator==(T other) const noexcept -> bool {
+    auto operator==(const arithmetic auto& other) const noexcept -> bool {
         return json::visit(detail::overload{
-            [other](arithmetic auto val) { return other == val; },
+            [other](const arithmetic auto& val) { return other == val; },
             [](const auto&) { return false; },
         }, *this);
     }
@@ -537,15 +562,13 @@ struct basic_value {
             [](const object_type& lhs, const object_type& rhs) {
                 return (lhs == rhs) ? std::partial_ordering::equivalent : std::partial_ordering::unordered;
             },
-            []<class T> (const T& lhs, const T& rhs) -> std::partial_ordering {
-                static_assert(in_type_list<T, types>);
-                return lhs <=> rhs;
-            },
+            []<class T> (const T& lhs, const T& rhs) -> std::partial_ordering { return lhs <=> rhs; },
+            [](const arithmetic auto& lhs, const arithmetic auto& rhs) -> std::partial_ordering { return lhs <=> rhs; },
             [](const auto&, const auto&) { return std::partial_ordering::unordered; },
         }, *this, other);
     }
 
-    template <in_type_list<types> T>
+    template <in_type_list<types> T> requires (!arithmetic<T>)
     auto operator<=>(const T& other) const noexcept -> std::partial_ordering {
         return json::visit(detail::overload{
             [&other](const T& val) -> std::partial_ordering { return val <=> other; },
@@ -553,6 +576,12 @@ struct basic_value {
         }, *this);
     }
 
+    auto operator<=>(const arithmetic auto& other) const noexcept -> std::partial_ordering {
+        return json::visit(detail::overload{
+            [other](const arithmetic auto& val) -> std::partial_ordering { return val <=> other; },
+            [](const auto&) { return std::partial_ordering::unordered; },
+        }, *this);
+    }
 
     auto operator<=>(const object_type& other) const noexcept -> std::partial_ordering {
         return json::visit(detail::overload{
@@ -560,22 +589,6 @@ struct basic_value {
                 return (obj == other) ? std::partial_ordering::equivalent : std::partial_ordering::unordered;
             },
             [](const auto&) { return std::partial_ordering::unordered; }
-        }, *this);
-    }
-
-    template <json::integral T> requires (!std::same_as<T, int_type>)
-    auto operator<=>(T other) const noexcept -> std::partial_ordering {
-        return json::visit(detail::overload{
-            [other](int_type val) -> std::partial_ordering { return val <=> other; },
-            [](const auto&) { return std::partial_ordering::unordered; },
-        }, *this);
-    }
-
-    template <std::floating_point T> requires (!std::same_as<T, float_type>)
-    auto operator<=>(T other) const noexcept -> std::partial_ordering {
-        return json::visit(detail::overload{
-            [other](float_type val) -> std::partial_ordering { return val <=> other; },
-            [](const auto&) { return std::partial_ordering::unordered; },
         }, *this);
     }
 
@@ -712,10 +725,20 @@ template <class I, class F, class S, template <class> class A, template <class> 
 struct is_value<basic_value<I, F, S, A, O>> : std::true_type {};
 
 template <class V>
-constexpr static auto is_value_v = is_value<V>::value;
+constexpr inline auto is_value_v = is_value<V>::value;
 
 using array = basic_array<value>;
 using object = basic_object<value>;
+
+template <class T, class Value> requires is_value<Value>::value
+auto& get(Value& val) noexcept {
+    return val.template get<T>();
+}
+
+template <class T, class Value> requires is_value<Value>::value
+const auto& get(const Value& val) noexcept {
+    return val.template get<T>();
+}
 
 template <class F, class Value> requires is_value<Value>::value && visitable<F, typename Value::types>
 constexpr auto visit(F&& f, const Value& v) {
@@ -794,7 +817,7 @@ auto apply_value(const Value& lhs, T rhs, F&& f, std::string_view op) {
 template <class Value, arithmetic T, class F> requires is_value_v<Value>
 auto apply_value(T lhs, const Value& rhs, F&& f, std::string_view op) {
     return json::visit(detail::overload{
-        [lhs, f = std::forward<F>(f)]<arithmetic U>(U x)
+        [lhs, f = std::forward<F>(f)](const arithmetic auto& x)
             { return Value(f(lhs, x)); },
         [op]<class U>(const U&) -> Value {
             if constexpr (json::integral<T>) {
@@ -809,7 +832,7 @@ auto apply_value(T lhs, const Value& rhs, F&& f, std::string_view op) {
 template <class Value, class F> requires is_value_v<Value>
 auto apply_value(const Value& lhs, const Value& rhs, F&& f , std::string_view op) {
     return json::visit(detail::overload{
-        [f = std::forward<F>(f)]<arithmetic U, arithmetic V> (U x, V y)
+        [f = std::forward<F>(f)] (const arithmetic auto& x, const arithmetic auto& y)
             { return Value(f(x, y)); },
         [op]<class U, class V>(const U&, const V&) -> Value {
             throw invalid_operation(Value::template type_name_v<U>, Value::template type_name_v<V>, op);
@@ -851,8 +874,8 @@ auto operator%(const Value& lhs, const Value& rhs) -> Value {
 
 template <class Value> requires is_value_v<Value>
 auto operator+(const Value& v) -> Value {
-    return visit(detail::overload{
-        []<arithmetic T>(T x)
+    return json::visit(detail::overload{
+        [](const arithmetic auto& x)
             { return basic_value(+x); },
         []<class T>(const T&) -> value
             { throw invalid_operation(Value::template type_name_v<T>, "+"); }
@@ -861,8 +884,8 @@ auto operator+(const Value& v) -> Value {
 
 template <class Value> requires is_value_v<Value>
 auto operator-(const Value& v) -> Value {
-    return visit(detail::overload{
-        []<arithmetic T>(T x)
+    return json::visit(detail::overload{
+        [](const arithmetic auto& x)
             { return basic_value(-x); },
         []<class T>(const T&) -> value
             { throw invalid_operation(Value::template type_name_v<T>, "-"); }

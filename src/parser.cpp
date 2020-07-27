@@ -188,4 +188,12 @@ auto json::parse(const std::vector<json::token>& toks) noexcept -> json::result<
     return Parser(toks.begin(), toks.end()).parse();
 }
 
+auto json::operator""_json(const char* s, std::size_t n) -> value {
+    auto res = json::parse(std::string_view(s, n));
+    if (!res) {
+        throw json::error_exception(res.error());
+    }
+    return *res;
+}
+
 }

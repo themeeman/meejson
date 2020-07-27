@@ -25,3 +25,43 @@ int main() {
 }
 ```
 
+Replacing missing fields with null
+
+```c++
+#include "meejson/value.hpp"
+
+namespace json = mee::json;
+
+int main() { 
+    auto data = R"([
+    {
+        "first_name": "Tom",
+        "last_name": "Van Howe",
+        "age": 18
+    },
+    {
+        "first_name": "Bjarne",
+        "last_name": "Stroutstrup"
+    },
+    {
+        "first_name": "Jeff",
+        "age": 50
+    }
+])"_json;
+    auto keys = std::set<std::string>();
+    for (const auto& obj : data.get_array()) {
+        for (const auto& [key, val] : obj.get_object()) {
+            keys.insert(key);
+        }
+    }
+    
+    for (auto& obj : data.get_array()) {
+        for (const auto& key : keys) {
+            if (!obj.has_key(key)) {
+                obj.emplace(key, json::null());
+            }   
+        }   
+    }
+    std::cout << data;
+}
+```
